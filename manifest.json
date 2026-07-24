@@ -1,4 +1,3 @@
-
 let boardEl, turnDisplay, sidebar, overlay, modalBox, modalTitle, modalBody;
 let coachBanner, coachText, oppName, resetBtn, sidebarToggleBtn, modalCloseBtn;
 
@@ -68,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    
     boardEl.addEventListener('click', (e) => {
         if (gameState.isGameOver) return;
         const sq = e.target.closest('.square');
@@ -96,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initGame();
 });
 
-
 function switchMode(mode) {
     currentMode = mode;
     document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -119,7 +116,6 @@ function switchMode(mode) {
     initGame();
 }
 
-// 게임 상태 초기화
 function initGame() {
     if (currentMode === 'puzzle') {
         gameState = {
@@ -152,7 +148,6 @@ function initGame() {
     drawBoard();
     updateStatus();
 }
-
 
 function movePiece(from, to) {
     const piece = gameState.board[from.row][from.col];
