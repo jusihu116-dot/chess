@@ -7,11 +7,11 @@ const PIECES = {
 };
 
 const COACH_TIPS = [
-    "훌륭합니다! 중앙 주도권을 잘 잡고 계시네요.",
-    "좋은 수입니다. 나이트와 비숍을 빠르게 전진시켜보세요.",
-    "킹의 안전을 지키기 위해 캐슬링 타이밍을 노려보세요.",
-    "상대 기물의 위협 경로를 상시 점검해야 합니다.",
-    "좋은 흐름입니다. 주저하지 말고 빈틈을 공략하세요!"
+    "중앙 점유율을 높여보세요! e4나 d4 칸을 공략하는 것이 좋습니다.",
+    "나이트와 비숍을 먼저 전진시켜 대국 공간을 확보하세요.",
+    "킹의 안전이 최우선입니다. 캐슬링 기회를 노려보세요!",
+    "상대 기물의 이동 경로와 위협을 항상 주의 깊게 살피세요.",
+    "상대방의 퀸이나 루크 공격 경로에 방심한 기물이 없는지 확인해보세요."
 ];
 
 let currentMode = 'play';
@@ -188,7 +188,10 @@ function checkGameEndStatus() {
         gameState.isGameOver = true;
         const inCheck = isKingInCheck(gameState.board, gameState.turn);
         modalTitle.textContent = inCheck ? '체크메이트!' : '무승부';
-        modalBody.textContent = inCheck ? `${gameState.turn === 'w' ? '흑색' : '백색'}의 승리입니다!` : '더 이상 둘 수 있는 수가 없습니다.';
+        modalBody.textContent = inCheck 
+            ? `${gameState.turn === 'w' ? '흑색' : '백색'}의 승리입니다!` 
+            : '더 이상 둘 수 있는 수가 없습니다. (스테일메이트)';
+        
         overlay.classList.add('active');
         modalBox.classList.add('active');
     }
