@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>체스 게임</title>
+    <style>
+        :root {
+            --light-square: #ebece0;
+            --dark-square: #739552;
+            --last-move-light: #f5f682;
+            --last-move-dark: #b9ca43;
+            --selected-square: #bbcb2b;
+            --board-bg: #262421;
+            --panel-bg: #21201d;
+            --card-bg: #2b2927;
+            --chess-green: #81b64c;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+            background-color: var(--board-bg);
+            color: #ffffff;
+            user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+        }
+
+        header {
+            padding-top: env(safe-area-inset-top, 10px);
+            width: 100%;
+            background-color: var(--panel-bg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 15px;
+            padding-right: 15px;
+            height: 50px;
+            border-bottom: 1px solid #312e2b;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--chess-green);
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .mode-tabs {
+            display: flex;
+            width: 100%;
+            max-width: 480px;
+            background-color: #1a1917;
+            border-bottom: 1px solid #312e2b;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 0;
+            background: none;
+            border: none;
+            color: #8b8885;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: var(--chess-green);
+            border-bottom: 2px solid var(--chess-green);
+            background-color: var(--panel-bg);
+        }
+
+        #coach-banner {
+            width: 95vw;
+            max-width: 460px;
+            background-color: #2b2927;
+            border-left: 4px solid var(--chess-green);
+            padding: 8px 12px;
+            margin: 6px 0;
+            font-size: 0.85rem;
+            color: #ddd;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            border-radius: 4px;
+        }
+
+        #coach-banner.active { display: flex; }
+
+        .player-bar {
+            width: 100%;
+            max-width: 480px;
+            padding: 6px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 95vw;
+            height: 95vw;
+            max-width: 460px;
+            max-height: 460px;
+            border-radius: 3px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(32px, 9.5vw, 50px);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .square.light { background-color: var(--light-square); color: #000; }
+        .square.dark { background-color: var(--dark-square); color: #000; }
+
+        .square.light.last-move { background-color: var(--last-move-light) !important; }
+        .square.dark.last-move { background-color: var(--last-move-dark) !important; }
+        .square.selected { background-color: var(--selected-square) !important; }
+
+        .square.possible::after {
+            content: '';
+            width: 28%; height: 28%;
+            background-color: rgba(0, 0, 0, 0.15);
+            border-radius: 50%;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .square.possible.has-piece::after {
+            width: 86%; height: 86%;
+            background-color: transparent;
+            border: 5px solid rgba(0, 0, 0, 0.15);
+            border-radius: 50%;
+        }
+
+        .square.in-check {
+            background: radial-gradient(circle, #ff5252 0%, #b71c1c 100%) !important;
+        }
+
+        .piece { pointer-events: none; z-index: 2; }
+
+        #bottom-panel {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--panel-bg);
+            padding-bottom: env(safe-area-inset-bottom, 10px);
+            border-top: 1px solid #312e2b;
+        }
+
+        .quick-nav {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 2px;
+            background-color: #312e2b;
+            padding-top: 2px;
+        }
+
+        .nav-item {
+            background-color: var(--panel-bg);
+            padding: 10px 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: #bab8b6;
+            cursor: pointer;
+            border: none;
+        }
+
+        .nav-item:active { background-color: #2b2927; color: #fff; }
+
+        #status-bar {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #turn-display {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #bab8b6;
+        }
+
+        #reset-btn {
+            background-color: #383531;
+            color: #ffffff;
+            border: none;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0; left: -280px;
+            width: 280px; height: 100%;
+            background-color: var(--panel-bg);
+            z-index: 200;
+            transition: left 0.3s ease;
+            box-shadow: 5px 0 25px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar.open { left: 0; }
+
+        .sidebar-header {
+            padding: 20px;
+            background-color: #1a1917;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--chess-green);
+            border-bottom: 1px solid #312e2b;
+        }
+
+        .sidebar-menu { list-style: none; padding: 0; margin: 0; }
+
+        .sidebar-menu li {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #282624;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #ddd;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 150;
+            display: none;
+        }
+        .overlay.active { display: block; }
+
+        .modal {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 88%; max-width: 360px;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            z-index: 210;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid #3c3937;
+        }
+
+        .modal.active {
+            opacity: 1; pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .modal h2 { margin-top: 0; color: var(--chess-green); font-size: 1.3rem; }
+        .modal-content { font-size: 0.9rem; color: #ccc; margin-bottom: 20px; line-height: 1.4; }
+
+        .close-btn {
+            background-color: var(--chess-green);
+            color: white; border: none;
+            width: 100%; padding: 10px;
+            border-radius: 6px; font-weight: bold;
+            cursor: pointer;
+        }
+
+        .history-list, .league-rank { list-style: none; padding: 0; margin: 10px 0; }
+        .history-list li, .league-rank li {
+            display: flex; justify-content: space-between;
+            padding: 8px 0; border-bottom: 1px solid #383531; font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+        <div class="logo-area">체스 게임</div>
+        <div></div>
+    </header>
+
+    <div class="mode-tabs">
+        <button class="tab-btn active" onclick="switchMode('play')">플레이</button>
+        <button class="tab-btn" onclick="switchMode('puzzle')">퍼즐</button>
+        <button class="tab-btn" onclick="switchMode('coach')">코치 대국</button>
+    </div>
+
+    <div id="overlay" class="overlay" onclick="closeAll()"></div>
+
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">메뉴</div>
+        <ul class="sidebar-menu">
+            <li onclick="openModal('record')">경기 기록</li>
+            <li onclick="openModal('league')">리그</li>
+            <li onclick="openModal('daily')">일일 게임</li>
+            <li onclick="openModal('lesson')">레슨</li>
+            <li onclick="openModal('puzzle')">퍼즐</li>
+            <li onclick="openModal('review')">게임 리뷰</li>
+        </ul>
+    </div>
+
+    <div id="coach-banner">
+        <span id="coach-text">코치 매그너스: 중앙을 점령하면서 좋은 기물을 펼쳐보세요!</span>
+    </div>
+
+    <div class="player-bar">
+        <div class="player-info">
+            <span id="opp-name">상대방 (흑색)</span>
+        </div>
+    </div>
+
+    <div id="board"></div>
+
+    <div id="bottom-panel">
+        <div class="player-bar">
+            <div class="player-info">
+                <span>플레이어 (백색)</span>
+            </div>
+        </div>
+
+        <div id="status-bar">
+            <span id="turn-display">백색 차례</span>
+            <button id="reset-btn" onclick="initGame()">새 게임</button>
+        </div>
+
+        <div class="quick-nav">
+            <button class="nav-item" onclick="openModal('record')">기록</button>
+            <button class="nav-item" onclick="openModal('league')">리그</button>
+            <button class="nav-item" onclick="openModal('daily')">일일</button>
+            <button class="nav-item" onclick="openModal('lesson')">레슨</button>
+            <button class="nav-item" onclick="switchMode('puzzle')">퍼즐</button>
+            <button class="nav-item" onclick="openModal('review')">리뷰</button>
+        </div>
+    </div>
+
+    <div id="modal-box" class="modal">
+        <h2 id="modal-title">메뉴</h2>
+        <div id="modal-body" class="modal-content">내용</div>
+        <button class="close-btn" onclick="closeAll()">닫기</button>
+    </div>
+
+    <script>
+        const boardEl = document.getElementById('board');
+        const turnDisplay = document.getElementById('turn-display');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const modalBox = document.getElementById('modal-box');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+
+        const coachBanner = document.getElementById('coach-banner');
+        const coachText = document.getElementById('coach-text');
+        const oppName = document.getElementById('opp-name');
+
+        const PIECES = {
+            w: { r: '♖', n: '♘', b: '♗', q: '♕', k: '♔', p: '♙' },
+            b: { r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', p: '♟︎' }
+        };
+
+        let currentMode = 'play';
+
+        let gameState = {
+            board: [],
+            turn: 'w',
+            selectedSquare: null,
+            possibleMoves: [],
+            lastMove: null,
+            isGameOver: false
+        };
+
+        const COACH_TIPS = [
+            "훌륭합니다! 중앙 주도권을 잘 잡고 계시네요.",
+            "좋은 수입니다. 나이트와 비숍을 빠르게 전진시켜보세요.",
+            "킹의 안전을 지키기 위해 캐슬링 타이밍을 노려보세요.",
+            "상대 기물의 위협 경로를 상시 점검해야 합니다.",
+            "좋은 흐름입니다. 주저하지 말고 빈틈을 공략하세요!"
+        ];
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', 
+                    (mode === 'play' && idx === 0) || 
+                    (mode === 'puzzle' && idx === 1) || 
+                    (mode === 'coach' && idx === 2)
+                );
+            });
+
+            if (mode === 'coach') {
+                coachBanner.classList.add('active');
+                oppName.textContent = '코치 매그너스 (점수 1500)';
+                coachText.textContent = '코치 매그너스: 준비되셨나요? 제가 대국하면서 한글로 조언해드릴게요!';
+            } else if (mode === 'puzzle') {
+                coachBanner.classList.add('active');
+                oppName.textContent = '퍼즐 챌린지 (#1428)';
+                coachText.textContent = '퍼즐: 가장 유리한 최선의 전술 수를 찾으세요!';
+            } else {
+                coachBanner.classList.remove('active');
+                oppName.textContent = '상대방 (흑색)';
+            }
+
+            initGame();
+        }
+
+        function initGame() {
+            if (currentMode === 'puzzle') {
+                gameState = {
+                    board: [
+                        ['', '', '', 'bk', '', '', '', 'br'],
+                        ['bp', 'bp', '', '', '', 'bp', 'bp', 'bp'],
+                        ['', '', 'bq', '', '', '', '', ''],
+                        ['', '', '', '', '', '', '', ''],
+                        ['', '', '', 'wq', '', '', '', ''],
+                        ['', '', '', '', '', '', '', ''],
+                        ['wp', 'wp', '', '', '', 'wp', 'wp', 'wp'],
+                        ['wr', '', '', '', 'wk', '', '', '']
+                    ],
+                    turn: 'w', selectedSquare: null, possibleMoves: [], lastMove: null, isGameOver: false
+                };
+            } else {
+                gameState = {
+                    board: [
+                        ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+                        ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+                        Array(8).fill(''), Array(8).fill(''),
+                        Array(8).fill(''), Array(8).fill(''),
+                        ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+                        ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+                    ],
+                    turn: 'w', selectedSquare: null, possibleMoves: [], lastMove: null, isGameOver: false
+                };
+            }
+            closeAll();
+            drawBoard();
+            updateStatus();
+        }
+
+        function drawBoard() {
+            boardEl.innerHTML = '';
+            const frag = document.createDocumentFragment();
+            const inCheck = isKingInCheck(gameState.board, gameState.turn);
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    const isLight = (r + c) % 2 === 0;
+                    sq.className = `square ${isLight ? 'light' : 'dark'}`;
+                    sq.dataset.row = r; sq.dataset.col = c;
+
+                    if (gameState.lastMove) {
+                        const { from, to } = gameState.lastMove;
+                        if ((from.row === r && from.col === c) || (to.row === r && to.col === c)) {
+                            sq.classList.add('last-move');
+                        }
+                    }
+
+                    const piece = gameState.board[r][c];
+                    if (piece) {
+                        const pSpan = document.createElement('span');
+                        pSpan.className = 'piece';
+                        pSpan.textContent = PIECES[piece[0]][piece[1]];
+                        sq.appendChild(pSpan);
+
+                        if (inCheck && piece[0] === gameState.turn && piece[1] === 'k') {
+                            sq.classList.add('in-check');
+                        }
+                    }
+
+                    if (gameState.selectedSquare?.row === r && gameState.selectedSquare?.col === c) {
+                        sq.classList.add('selected');
+                    }
+
+                    if (gameState.possibleMoves.some(m => m.row === r && m.col === c)) {
+                        sq.classList.add('possible');
+                        if (piece) sq.classList.add('has-piece');
+                    }
+
+                    frag.appendChild(sq);
+                }
+            }
+            boardEl.appendChild(frag);
+        }
+
+        function updateStatus() {
+            const inCheck = isKingInCheck(gameState.board, gameState.turn);
+            let text = gameState.turn === 'w' ? '백색 차례' : '흑색 차례';
+            if (inCheck) text += ' [체크!]';
+            turnDisplay.textContent = text;
+        }
+
+        boardEl.addEventListener('click', (e) => {
+            if (gameState.isGameOver) return;
+            const sq = e.target.closest('.square');
+            if (!sq) return;
+
+            const r = parseInt(sq.dataset.row);
+            const c = parseInt(sq.dataset.col);
+            const piece = gameState.board[r][c];
+
+            if (gameState.selectedSquare && gameState.possibleMoves.some(m => m.row === r && m.col === c)) {
+                movePiece(gameState.selectedSquare, { row: r, col: c });
+                return;
+            }
+
+            if (piece && piece[0] === gameState.turn) {
+                gameState.selectedSquare = { row: r, col: c };
+                gameState.possibleMoves = getLegalMoves(r, c, piece);
+            } else {
+                gameState.selectedSquare = null;
+                gameState.possibleMoves = [];
+            }
+            drawBoard();
+        });
+
+        function movePiece(from, to) {
+            const piece = gameState.board[from.row][from.col];
+            gameState.board[to.row][to.col] = piece;
+            gameState.board[from.row][from.col] = '';
+
+            if (piece[1] === 'p' && (to.row === 0 || to.row === 7)) {
+                gameState.board[to.row][to.col] = piece[0] + 'q';
+            }
+
+            gameState.lastMove = { from, to };
+            gameState.turn = gameState.turn === 'w' ? 'b' : 'w';
+            gameState.selectedSquare = null;
+            gameState.possibleMoves = [];
+
+            if (currentMode === 'coach' && gameState.turn === 'b') {
+                const randomTip = COACH_TIPS[Math.floor(Math.random() * COACH_TIPS.length)];
+                coachText.textContent = `코치 매그너스: ${randomTip}`;
+            }
+
+            checkGameEndStatus();
+            drawBoard();
+            updateStatus();
+        }
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        function closeAll() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            modalBox.classList.remove('active');
+        }
+
+        function openModal(type) {
+            closeAll();
+            overlay.classList.add('active');
+            modalBox.classList.add('active');
+
+            if (type === 'record') {
+                modalTitle.textContent = '경기 기록';
+                modalBody.innerHTML = `
+                    <ul class="history-list">
+                        <li><span>vs 최고수봇</span> <span style="color:#81b64c; font-weight:bold;">승리 (+15)</span></li>
+                        <li><span>vs 코치 매그너스</span> <span style="color:#e57373; font-weight:bold;">패배 (-12)</span></li>
+                    </ul>`;
+            } else if (type === 'league') {
+                modalTitle.textContent = '브론즈 리그';
+                modalBody.innerHTML = '<p>현재 순위: <b>2위</b> (상위 리그 승급 가능)</p>';
+            } else if (type === 'daily') {
+                modalTitle.textContent = '일일 게임';
+                modalBody.innerHTML = '<p>진행 중인 일일 대국이 없습니다.</p>';
+            } else if (type === 'lesson') {
+                modalTitle.textContent = '체스 레슨';
+                modalBody.innerHTML = '<p><b>추천 강좌:</b> 오프닝 원리와 중앙점령법</p>';
+            } else if (type === 'review') {
+                modalTitle.textContent = '게임 리뷰';
+                modalBody.innerHTML = '<p>최근 대국 정확도: <b style="color:#81b64c;">86.5%</b></p>';
+            }
+        }
+
+        function findKing(board, color) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] === color + 'k') return { row: r, col: c };
+                }
+            }
+            return null;
+        }
+
+        function isKingInCheck(board, color) {
+            const kingPos = findKing(board, color);
+            if (!kingPos) return false;
+            const enemyColor = color === 'w' ? 'b' : 'w';
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = board[r][c];
+                    if (piece && piece[0] === enemyColor) {
+                        const moves = generateRawMoves(r, c, piece, board);
+                        if (moves.some(m => m.row === kingPos.row && m.col === kingPos.col)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function getLegalMoves(r, c, piece) {
+            const rawMoves = generateRawMoves(r, c, piece, gameState.board);
+            const legalMoves = [];
+
+            rawMoves.forEach(move => {
+                const tempBoard = gameState.board.map(row => [...row]);
+                tempBoard[move.row][move.col] = tempBoard[r][c];
+                tempBoard[r][c] = '';
+                if (!isKingInCheck(tempBoard, piece[0])) legalMoves.push(move);
+            });
+            return legalMoves;
+        }
+
+        function checkGameEndStatus() {
+            let totalLegalMoves = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = gameState.board[r][c];
+                    if (piece && piece[0] === gameState.turn) {
+                        totalLegalMoves += getLegalMoves(r, c, piece).length;
+                    }
+                }
+            }
+
+            if (totalLegalMoves === 0) {
+                gameState.isGameOver = true;
+                const inCheck = isKingInCheck(gameState.board, gameState.turn);
+                modalTitle.textContent = inCheck ? '체크메이트!' : '무승부';
+                modalBody.textContent = inCheck ? `${gameState.turn === 'w' ? '흑색' : '백색'}의 승리입니다!` : '더 이상 둘 수 있는 수가 없습니다.';
+                overlay.classList.add('active');
+                modalBox.classList.add('active');
+            }
+        }
+
+        function generateRawMoves(r, c, piece, board) {
+            const color = piece[0], type = piece[1], moves = [];
+            const dir = color === 'w' ? -1 : 1;
+
+            if (type === 'p') {
+                if (r + dir >= 0 && r + dir < 8 && board[r + dir][c] === '') {
+                    moves.push({ row: r + dir, col: c });
+                    const startRow = color === 'w' ? 6 : 1;
+                    if (r === startRow && board[r + dir * 2][c] === '') moves.push({ row: r + dir * 2, col: c });
+                }
+                [-1, 1].forEach(dc => {
+                    const nr = r + dir, nc = c + dc;
+                    if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                        const target = board[nr][nc];
+                        if (target && target[0] !== color) moves.push({ row: nr, col: nc });
+                    }
+                });
+            } else if (type === 'n') {
+                [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr, dc]) => {
+                    const nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                        const target = board[nr][nc];
+                        if (!target || target[0] !== color) moves.push({ row: nr, col: nc });
+                    }
+                });
+            } else {
+                let dirs = [], limit = 8;
+                if (type === 'b') dirs = [[-1,-1],[-1,1],[1,-1],[1,1]];
+                else if (type === 'r') dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                else if (type === 'q') dirs = [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]];
+                else if (type === 'k') { dirs = [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]; limit = 1; }
+
+                dirs.forEach(([dr, dc]) => {
+                    for (let i = 1; i <= limit; i++) {
+                        const nr = r + dr * i, nc = c + dc * i;
+                        if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) break;
+                        const target = board[nr][nc];
+                        if (!target) moves.push({ row: nr, col: nc });
+                        else {
+                            if (target[0] !== color) moves.push({ row: nr, col: nc });
+                            break;
+                        }
+                    }
+                });
+            }
+            return moves;
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
